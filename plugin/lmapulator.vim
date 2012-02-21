@@ -29,10 +29,6 @@ set cpoptions&vim
 
 
 
-
-
-
-
 " Options {{{1
 
 function! s:set_default_option(name, value)
@@ -44,12 +40,6 @@ endfunction
 call s:set_default_option('enable_at_startup', 0)
 call s:set_default_option('source_keyboard_layout', 'qwerty')
 call s:set_default_option('destination_keyboard_layout', '')
-
-
-
-
-
-
 
 
 
@@ -77,10 +67,6 @@ command! -nargs=0 LmapulatorReload
 
 
 
-
-
-
-
 " Autocommands {{{1
 
 if g:lmapulator#enable_at_startup
@@ -89,10 +75,6 @@ if g:lmapulator#enable_at_startup
     autocmd VimEnter * call lmapulator#enable()
   augroup END
 endif
-
-
-
-
 
 
 

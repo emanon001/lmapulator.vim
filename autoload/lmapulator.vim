@@ -19,12 +19,7 @@ set cpoptions&vim
 
 
 
-
-
-
-
-" Variables {{{1
-" Definition of constant. {{{2
+" Constants {{{1
 
 let s:TRUE = 1
 let s:FALSE = !s:TRUE
@@ -35,13 +30,61 @@ lockvar! s:TRUE s:FALSE s:PLUGIN_NAME
 
 
 
-" Definition of a variable. {{{2
+" Variables {{{1
 
 let s:lmapulator = {}
 
 
+" Preparation of initialization. {{{2
 
+function! s:lmapulator.__init__() " {{{3
+  call self.__init_variables__()
+  call self.__init_accessor__()
 
+  " TODO: Lazy load.
+  call self.load_langmap_files()
+endfunction
+
+function! s:lmapulator.__init_variables__() " {{{3
+  let self._variables_ = {
+        \  'langmap_config_table': {},
+        \  'current_source_keyboard_layout': g:lmapulator#source_keyboard_layout,
+        \  'current_destination_keyboard_layout': g:lmapulator#destination_keyboard_layout,
+        \  'saved_langmap': '',
+        \  'is_enable': s:FALSE
+        \ }
+endfunction
+
+function! s:lmapulator.__init_accessor__() " {{{3
+  " langmap_config_table
+  call self._define_accessor('getter', 'langmap_config_table')
+  " - source_keyboard_layout_config
+  call self._define_accessor('accessor', 'source_keyboard_layout_config',
+        \                     {'args': ['keyboard_layout'],
+        \                      'access_property': 'a:keyboard_layout',
+        \                      'ctx': 'self.get_langmap_config_table()'})
+  " -- destination_keyboard_layout_config
+  call self._define_accessor('accessor', 'destination_keyboard_layout_config',
+        \                     {'args': ['source_keyboard_layout', 'dest_keyboard_layout'],
+        \                      'access_property': 'a:dest_keyboard_layout',
+        \                      'ctx': 'self.get_source_keyboard_layout_config(a:source_keyboard_layout)'})
+  " --- langmap
+  call self._define_accessor('getter', 'langmap',
+        \                     {'args': ['source_keyboard_layout', 'dest_keyboard_layout'],
+        \                      'ctx': 'self.get_destination_keyboard_layout_config(a:source_keyboard_layout, a:dest_keyboard_layout)'})
+
+  " current_source_keyboard_layout
+  call self._define_accessor('accessor', 'current_source_keyboard_layout')
+
+  " current_destination_keyboard_layout
+  call self._define_accessor('accessor', 'current_destination_keyboard_layout')
+
+  " is_enable
+  call self._define_accessor('accessor', 'is_enable', {'is_pred': s:TRUE})
+
+  " saved_langmap
+  call self._define_accessor('accessor', 'saved_langmap')
+endfunction
 
 
 
@@ -77,6 +120,7 @@ function! lmapulator#switch(keyboard_layout) " {{{2
   call s:lmapulator.enable()
 endfunction
 
+
 function! lmapulator#enable() " {{{2
   if s:lmapulator.enable_p()
     return
@@ -102,6 +146,7 @@ function! lmapulator#enable() " {{{2
   call s:lmapulator.enable()
 endfunction
 
+
 function! lmapulator#disable() " {{{2
   if s:lmapulator.enable_p()
     let &langmap = s:lmapulator.get_saved_langmap()
@@ -109,34 +154,35 @@ function! lmapulator#disable() " {{{2
   call s:lmapulator.disable()
 endfunction
 
+
 function! lmapulator#set_source_keyboard_layout(keyboard_layout) " {{{2
   return s:lmapulator.set_current_source_keyboard_layout(a:keyboard_layout)
 endfunction
+
 
 function! lmapulator#source_keyboard_layout() " {{{2
   return s:lmapulator.get_current_source_keyboard_layout()
 endfunction
 
+
 function! lmapulator#destination_keyboard_layout() " {{{2
   return s:lmapulator.get_current_destination_keyboard_layout()
 endfunction
+
 
 function! lmapulator#enable_p() " {{{2
   return s:lmapulator.enable_p()
 endfunction
 
+
 function! lmapulator#load(file_path) " {{{2
   return s:lmapulator.load_langmap_file(fnamemodify(a:file_path, ':p'))
 endfunction
 
+
 function! lmapulator#reload() " {{{2
   return s:lmapulator.load_langmap_files()
 endfunction
-
-
-
-
-
 
 
 
@@ -215,8 +261,6 @@ function! s:lmapulator.file_to_config(file_path) " {{{3
   let config = {'langmap': langmap}
   return config
 endfunction
-
-
 
 
 " Variable operation of lmapulator. {{{2
@@ -304,10 +348,6 @@ endfunction
 
 
 
-
-
-
-
 " Misc {{{1
 
 function! s:print_error(message) " {{{2
@@ -324,6 +364,7 @@ function! s:print_error(message) " {{{2
   endfor
 endfunction
 
+
 function! s:union_dictionary(dict, add_dict) " {{{2
   let ret = copy(a:dict)
   for key in keys(a:add_dict)
@@ -334,14 +375,17 @@ function! s:union_dictionary(dict, add_dict) " {{{2
   return ret
 endfunction
 
+
 function! s:escape_langmap(str) " {{{2
   let ret = substitute(a:str, '\', '\\\\', 'g')
   return substitute(ret, '\([,;"|]\)', '\\\1', 'g')
 endfunction
 
+
 function! lmapulator#complete_source_keyboard_layout(arg_lead, cmd_line, cursor_pos) " {{{2
   return filter(keys(s:lmapulator.get_langmap_config_table()), 'v:key =~ a:arg_lead')
 endfunction
+
 
 function! lmapulator#complete_destination_keyboard_layout(arg_lead, cmd_line, cursor_pos) " {{{2
   return filter(keys(s:lmapulator.get_source_keyboard_layout_config(
@@ -351,72 +395,9 @@ endfunction
 
 
 
-
-
-
-
 " Init {{{1
 
-function! s:lmapulator.__init__() " {{{2
-  call self.__init_variables__()
-  call self.__init_accessor__()
-
-  " TODO: Lazy load.
-  call self.load_langmap_files()
-endfunction
-
-function! s:lmapulator.__init_variables__() " {{{2
-  let self._variables_ = {
-        \  'langmap_config_table': {},
-        \  'current_source_keyboard_layout': g:lmapulator#source_keyboard_layout,
-        \  'current_destination_keyboard_layout': g:lmapulator#destination_keyboard_layout,
-        \  'saved_langmap': '',
-        \  'is_enable': s:FALSE
-        \ }
-endfunction
-
-function! s:lmapulator.__init_accessor__() " {{{2
-  " langmap_config_table
-  call self._define_accessor('getter', 'langmap_config_table')
-  " - source_keyboard_layout_config
-  call self._define_accessor('accessor', 'source_keyboard_layout_config',
-        \                     {'args': ['keyboard_layout'],
-        \                      'access_property': 'a:keyboard_layout',
-        \                      'ctx': 'self.get_langmap_config_table()'})
-  " -- destination_keyboard_layout_config
-  call self._define_accessor('accessor', 'destination_keyboard_layout_config',
-        \                     {'args': ['source_keyboard_layout', 'dest_keyboard_layout'],
-        \                      'access_property': 'a:dest_keyboard_layout',
-        \                      'ctx': 'self.get_source_keyboard_layout_config(a:source_keyboard_layout)'})
-  " --- langmap
-  call self._define_accessor('getter', 'langmap',
-        \                     {'args': ['source_keyboard_layout', 'dest_keyboard_layout'],
-        \                      'ctx': 'self.get_destination_keyboard_layout_config(a:source_keyboard_layout, a:dest_keyboard_layout)'})
-
-  " current_source_keyboard_layout
-  call self._define_accessor('accessor', 'current_source_keyboard_layout')
-
-  " current_destination_keyboard_layout
-  call self._define_accessor('accessor', 'current_destination_keyboard_layout')
-
-  " is_enable
-  call self._define_accessor('accessor', 'is_enable', {'is_pred': s:TRUE})
-
-  " saved_langmap
-  call self._define_accessor('accessor', 'saved_langmap')
-endfunction
-
-
-
-
-" Call the initialization function. {{{2
-
 call s:lmapulator.__init__()
-
-
-
-
-
 
 
 
@@ -425,10 +406,6 @@ call s:lmapulator.__init__()
 
 let &cpoptions = s:save_cpoptions
 unlet s:save_cpoptions
-
-
-
-
 
 
 
